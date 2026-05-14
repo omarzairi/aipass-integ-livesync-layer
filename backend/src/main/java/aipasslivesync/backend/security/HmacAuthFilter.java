@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.ContentCachingRequestWrapper;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
@@ -41,8 +39,7 @@ public class HmacAuthFilter implements Filter {
             return;
         }
 
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(httpRequest, 10240);
-        String signature = wrappedRequest.getHeader(SIGNATURE_HEADER);
+        String signature = httpRequest.getHeader(SIGNATURE_HEADER);
 
         if (signature == null || signature.isBlank()) {
             log.warn("Webhook request missing {} header", SIGNATURE_HEADER);
@@ -51,13 +48,44 @@ public class HmacAuthFilter implements Filter {
             return;
         }
 
-        chain.doFilter(wrappedRequest, response);
-
-        byte[] body = wrappedRequest.getContentAsByteArray();
+        byte[] body = httpRequest.getInputStream().readAllBytes();
         String computed = computeHmac(body);
 
         if (!signature.equals(computed)) {
-            log.warn("Webhook HMAC signature mismatch");
+            log.warn("Webhook HMAC signature mismatch — rejecting request");
+            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid webhook signature");
+            return;
+        }
+
+        log.debug("Webhook HMAC signature verified");
+        chain.doFilter(new CachedBodyRequestWrapper(httpRequest, body), response);
+    }
+
+    private static class CachedBodyRequestWrapper extends jakarta.servlet.http.HttpServletRequestWrapper {
+        private final byte[] cachedBody;
+
+        CachedBodyRequestWrapper(HttpServletRequest request, byte[] body) {
+            super(request);
+            this.cachedBody = body;
+        }
+
+        @Override
+        public ServletInputStream getInputStream() {
+            return new ServletInputStream() {
+                private final java.io.ByteArrayInputStream delegate = new java.io.ByteArrayInputStream(cachedBody);
+
+                @Override public boolean isFinished() { return delegate.available() == 0; }
+                @Override public boolean isReady() { return true; }
+                @Override public void setReadListener(ReadListener listener) {}
+                @Override public int read() { return delegate.read(); }
+                @Override public int read(byte[] b, int off, int len) { return delegate.read(b, off, len); }
+            };
+        }
+
+        @Override
+        public java.io.BufferedReader getReader() {
+            return new java.io.BufferedReader(new java.io.InputStreamReader(getInputStream(), StandardCharsets.UTF_8));
         }
     }
 

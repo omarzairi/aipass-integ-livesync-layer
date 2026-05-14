@@ -36,3 +36,16 @@ export function fetchLogs(eventId, page = 0, size = 50) {
 export function replayEvent(id) {
   return postRequest(`/api/events/${id}/replay`);
 }
+
+export async function sendWebhook(body) {
+  const res = await fetch(`${BASE}/api/events/webhook`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`${res.status} ${text}`);
+  }
+  return res.json();
+}

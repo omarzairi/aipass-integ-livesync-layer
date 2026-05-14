@@ -1,9 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
-import { fetchHealth, fetchEvents, fetchLogs, replayEvent } from './api'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchHealth, fetchEvents, fetchLogs, replayEvent, sendWebhook } from './api'
 
 const EVENT_TYPES = ['INVOICE_UPLOADED', 'SUPPLIER_UPDATED', 'HR_ONBOARDING', 'ANOMALY_ALERT']
 const STATUSES = ['PENDING', 'PROCESSING', 'PROCESSED', 'FAILED', 'DEAD_LETTER']
 const PAGE_SIZE = 10
+
+const BACKEND = import.meta.env.VITE_API_URL || ''
+
+const SAMPLE_PAYLOADS = {
+  'invoice.uploaded': { event_type: 'invoice.uploaded', source: 'test-client', payload: { invoice_id: 'INV-' + Date.now(), amount: 3200, vendor: 'Test Corp' } },
+  'supplier.updated': { event_type: 'supplier.updated', source: 'test-client', payload: { supplier_id: 'SUP-' + Date.now(), status: 'active', rating: 4.2 } },
+  'hr.onboarding': { event_type: 'hr.onboarding', source: 'test-client', payload: { employee_name: 'Jane Doe', department: 'Engineering', start_date: '2026-07-01' } },
+  'anomaly.alert': { event_type: 'anomaly.alert', source: 'test-client', payload: { anomaly_type: 'cpu_spike', severity: 'critical', confidence: 0.93 } },
+}
 
 function Badge({ value, type }) {
   if (!value) return null
@@ -23,13 +32,11 @@ function MetricCard({ label, value, sub, color }) {
 
 function Pagination({ page, totalPages, onPageChange }) {
   if (totalPages <= 1) return null
-
   const pages = []
   const maxVisible = 5
   let start = Math.max(0, page - Math.floor(maxVisible / 2))
   let end = Math.min(totalPages, start + maxVisible)
   if (end - start < maxVisible) start = Math.max(0, end - maxVisible)
-
   for (let i = start; i < end; i++) pages.push(i)
 
   return (
@@ -38,9 +45,7 @@ function Pagination({ page, totalPages, onPageChange }) {
       <button className="page-btn" disabled={page === 0} onClick={() => onPageChange(page - 1)}>&lsaquo;</button>
       {start > 0 && <span className="page-ellipsis">&hellip;</span>}
       {pages.map(p => (
-        <button key={p} className={`page-btn ${p === page ? 'active' : ''}`} onClick={() => onPageChange(p)}>
-          {p + 1}
-        </button>
+        <button key={p} className={`page-btn ${p === page ? 'active' : ''}`} onClick={() => onPageChange(p)}>{p + 1}</button>
       ))}
       {end < totalPages && <span className="page-ellipsis">&hellip;</span>}
       <button className="page-btn" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)}>&rsaquo;</button>
@@ -52,9 +57,14 @@ function Pagination({ page, totalPages, onPageChange }) {
 function formatTime(iso) {
   if (!iso) return '\u2014'
   return new Date(iso).toLocaleString(undefined, {
-    month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
   })
+}
+
+function formatDuration(sec) {
+  if (!sec || sec < 0.001) return '< 1ms'
+  if (sec < 1) return `${Math.round(sec * 1000)}ms`
+  return `${sec.toFixed(2)}s`
 }
 
 function formatUptime(sec) {
@@ -65,6 +75,75 @@ function formatUptime(sec) {
   return `${h}h ${m}m`
 }
 
+function successRate(processed, failed) {
+  const total = processed + failed
+  if (total === 0) return '100'
+  return ((processed / total) * 100).toFixed(1)
+}
+
+function WebhookTester({ onSent }) {
+  const [selectedType, setSelectedType] = useState('invoice.uploaded')
+  const [payload, setPayload] = useState(JSON.stringify(SAMPLE_PAYLOADS['invoice.uploaded'], null, 2))
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState(null)
+
+  const handleTypeChange = (type) => {
+    setSelectedType(type)
+    setPayload(JSON.stringify(SAMPLE_PAYLOADS[type], null, 2))
+    setResult(null)
+  }
+
+  const handleSend = async () => {
+    setSending(true)
+    setResult(null)
+    try {
+      const parsed = JSON.parse(payload)
+      const res = await sendWebhook(parsed)
+      setResult({ ok: true, data: res })
+      if (onSent) setTimeout(onSent, 800)
+    } catch (err) {
+      setResult({ ok: false, error: err.message })
+    }
+    setSending(false)
+  }
+
+  return (
+    <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel-header">
+        <h2>Webhook Tester</h2>
+        <div className="filter-bar">
+          {Object.keys(SAMPLE_PAYLOADS).map(t => (
+            <button key={t} className={`btn ${selectedType === t ? 'btn-primary' : ''}`}
+              onClick={() => handleTypeChange(t)}>
+              {t.replace('.', ' ')}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ padding: 16 }}>
+        <textarea className="webhook-textarea" value={payload}
+          onChange={e => setPayload(e.target.value)} rows={6} spellCheck={false} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+          <button className="btn btn-primary" onClick={handleSend} disabled={sending}>
+            {sending ? 'Sending...' : 'Send Webhook'}
+          </button>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+            POST {BACKEND}/api/events/webhook
+          </span>
+        </div>
+        {result && (
+          <div className={`webhook-result ${result.ok ? 'success' : 'error'}`}>
+            {result.ok
+              ? <>202 Accepted &mdash; Event <span className="mono">{result.data?.id?.substring(0, 8)}</span> queued as {result.data?.status}</>
+              : <>Error: {result.error}</>
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState('events')
   const [health, setHealth] = useState(null)
@@ -72,6 +151,7 @@ export default function App() {
   const [logs, setLogs] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
+  const [lastRefresh, setLastRefresh] = useState(null)
 
   const [eventsPage, setEventsPage] = useState(0)
   const [logsPage, setLogsPage] = useState(0)
@@ -86,6 +166,7 @@ export default function App() {
   const loadEvents = useCallback(async () => {
     try {
       setEvents(await fetchEvents(eventsPage, PAGE_SIZE, filterType || undefined, filterStatus || undefined))
+      setLastRefresh(new Date())
     } catch {}
   }, [eventsPage, filterType, filterStatus])
 
@@ -102,10 +183,13 @@ export default function App() {
     catch (err) { alert('Replay failed: ' + err.message) }
   }
 
+  const handleRefreshEvents = () => { loadEvents(); loadHealth() }
   const clearFilters = () => { setFilterType(''); setFilterStatus(''); setEventsPage(0) }
 
   const m = health?.metrics || {}
   const q = health?.queue || {}
+  const processed = Math.round(m.events_processed || 0)
+  const failed = Math.round(m.events_failed || 0)
 
   return (
     <div className="app">
@@ -132,10 +216,10 @@ export default function App() {
           <div className="metrics-row">
             <MetricCard label="Uptime" value={formatUptime(health.uptimeSeconds)} sub="Since last deploy" />
             <MetricCard label="Received" value={Math.round(m.events_received || 0)} sub="Total events ingested" />
-            <MetricCard label="Processed" value={Math.round(m.events_processed || 0)} sub="Successfully completed" color="var(--green)" />
-            <MetricCard label="Failed" value={Math.round(m.events_failed || 0)} sub={`${Math.round(m.events_dead_letter || 0)} dead-lettered`} color={m.events_failed > 0 ? 'var(--red)' : undefined} />
+            <MetricCard label="Processed" value={processed} sub="Successfully completed" color="var(--green)" />
+            <MetricCard label="Failed" value={failed} sub={`${Math.round(m.events_dead_letter || 0)} dead-lettered`} color={failed > 0 ? 'var(--red)' : undefined} />
             <MetricCard label="Queue Depth" value={q.depth ?? 0} sub={q.redis_available ? 'Redis connected' : 'In-memory fallback'} color={q.depth > 0 ? 'var(--yellow)' : undefined} />
-            <MetricCard label="Pending" value={Math.round(m.events_pending || 0)} sub="Awaiting processing" />
+            <MetricCard label="Success Rate" value={`${successRate(processed, failed)}%`} sub={`${processed + failed} total processed`} color={successRate(processed, failed) >= 95 ? 'var(--green)' : 'var(--yellow)'} />
           </div>
         )}
 
@@ -159,31 +243,31 @@ export default function App() {
             <div className="pipeline-step">
               <div className="step-box worker">
                 Async Worker
-                <span className="step-count">{Math.round(m.events_processed || 0) + Math.round(m.events_failed || 0)}</span>
+                <span className="step-count">{processed + failed}</span>
               </div>
             </div>
             <span className="step-arrow">&rarr;</span>
             <div className="pipeline-step">
               <div className="step-box workflow">
                 Workflow Engine
-                <span className="step-count">{Math.round(m.events_processed || 0)}</span>
+                <span className="step-count">{processed}</span>
               </div>
             </div>
             <span className="step-arrow">&rarr;</span>
             <div className="pipeline-step">
               <div className="step-box result">
                 Structured Result
-                <span className="step-count">{Math.round(m.events_processed || 0)}</span>
+                <span className="step-count">{processed}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="tabs-bar">
-          {['events', 'logs'].map(t => (
+          {['events', 'tester', 'logs'].map(t => (
             <button key={t} className={`tab-btn ${tab === t ? 'active' : ''}`}
               onClick={() => { setTab(t); if (t === 'events') setEventsPage(0); if (t === 'logs') setLogsPage(0) }}>
-              {t === 'events' ? 'Events' : 'Processing Logs'}
+              {t === 'events' ? 'Events' : t === 'tester' ? 'Webhook Tester' : 'Processing Logs'}
             </button>
           ))}
           {selected && (
@@ -209,6 +293,7 @@ export default function App() {
                 {(filterType || filterStatus) && (
                   <button className="btn" onClick={clearFilters}>Clear</button>
                 )}
+                <button className="btn" onClick={handleRefreshEvents}>Refresh</button>
               </div>
             </div>
             <div className="panel-body">
@@ -254,11 +339,20 @@ export default function App() {
                 </>
               ) : (
                 <div className="empty-state">
-                  {(filterType || filterStatus) ? 'No events match the selected filters.' : 'No events ingested yet. POST to /api/events/webhook to get started.'}
+                  {(filterType || filterStatus) ? 'No events match the selected filters.' : 'No events ingested yet. Use the Webhook Tester tab to send your first event.'}
+                </div>
+              )}
+              {lastRefresh && (
+                <div style={{ textAlign: 'right', padding: '4px 16px 8px', fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                  Last refreshed: {lastRefresh.toLocaleTimeString()}
                 </div>
               )}
             </div>
           </div>
+        )}
+
+        {tab === 'tester' && (
+          <WebhookTester onSent={handleRefreshEvents} />
         )}
 
         {tab === 'logs' && (
@@ -333,7 +427,7 @@ export default function App() {
         )}
 
         <footer style={{ textAlign: 'center', padding: '32px 0 16px', fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-          AI-Pass LiveSync Engine &middot; <a href="/swagger-ui/index.html" style={{ color: 'var(--accent)' }}>Swagger UI</a> &middot; <a href="/actuator/prometheus" style={{ color: 'var(--accent)' }}>Prometheus Metrics</a>
+          AI-Pass LiveSync Engine &middot; <a href={`${BACKEND}/swagger-ui/index.html`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Swagger UI</a> &middot; <a href={`${BACKEND}/actuator/prometheus`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Prometheus Metrics</a> &middot; <a href={`${BACKEND}/api/health`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Health API</a>
         </footer>
       </div>
     </div>

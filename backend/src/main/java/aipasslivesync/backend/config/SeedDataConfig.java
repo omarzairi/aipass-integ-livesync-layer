@@ -1,6 +1,7 @@
 package aipasslivesync.backend.config;
 
 import aipasslivesync.backend.dto.WebhookRequest;
+import aipasslivesync.backend.repository.EventRepository;
 import aipasslivesync.backend.service.EventService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +17,14 @@ public class SeedDataConfig {
     private static final Logger log = LoggerFactory.getLogger(SeedDataConfig.class);
 
     @Bean
-    public CommandLineRunner seedData(EventService eventService) {
+    public CommandLineRunner seedData(EventService eventService, EventRepository eventRepository) {
         return args -> {
-            log.info("Seeding sample events...");
+            if (eventRepository.count() > 0) {
+                log.info("Database already contains {} events — skipping seed", eventRepository.count());
+                return;
+            }
+
+            log.info("Empty database detected — seeding sample events...");
 
             eventService.ingest(new WebhookRequest(
                     "invoice.uploaded", "invoice-system",
