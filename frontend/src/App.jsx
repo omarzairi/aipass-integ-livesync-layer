@@ -299,15 +299,15 @@ export default function App() {
             <div className="panel-body">
               {events?.content?.length > 0 ? (
                 <>
-                  <table>
+                  <table className="desktop-table">
                     <thead>
                       <tr>
                         <th>Timestamp</th>
                         <th>Event Type</th>
                         <th>Source</th>
                         <th>Status</th>
-                        <th className="hide-mobile">Decision</th>
-                        <th className="hide-mobile">Reason</th>
+                        <th>Decision</th>
+                        <th>Reason</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -318,12 +318,12 @@ export default function App() {
                           <td><Badge value={ev.eventType} type={ev.eventType?.toLowerCase()} /></td>
                           <td>{ev.source}</td>
                           <td><Badge value={ev.status} /></td>
-                          <td className="hide-mobile">
+                          <td>
                             {ev.workflowResult?.decision
                               ? <Badge value={ev.workflowResult.decision} />
                               : <span style={{ color: 'var(--text-dim)' }}>&mdash;</span>}
                           </td>
-                          <td className="hide-mobile" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {ev.workflowResult?.reason || '\u2014'}
                           </td>
                           <td>
@@ -335,6 +335,42 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
+                  <div className="mobile-cards">
+                    {events.content.map(ev => (
+                      <div className="event-card" key={ev.id}>
+                        <div className="event-card-header">
+                          <Badge value={ev.eventType} type={ev.eventType?.toLowerCase()} />
+                          <Badge value={ev.status} />
+                        </div>
+                        <div className="event-card-row">
+                          <span className="card-label">Source</span>
+                          <span className="card-value">{ev.source}</span>
+                        </div>
+                        <div className="event-card-row">
+                          <span className="card-label">Time</span>
+                          <span className="card-value mono">{formatTime(ev.createdAt)}</span>
+                        </div>
+                        <div className="event-card-row">
+                          <span className="card-label">Decision</span>
+                          <span className="card-value">
+                            {ev.workflowResult?.decision ? <Badge value={ev.workflowResult.decision} /> : '\u2014'}
+                          </span>
+                        </div>
+                        {ev.workflowResult?.reason && (
+                          <div className="event-card-row" style={{ alignItems: 'flex-start' }}>
+                            <span className="card-label">Reason</span>
+                            <span className="card-value" style={{ whiteSpace: 'normal', fontSize: '0.75rem', lineHeight: 1.4 }}>
+                              {ev.workflowResult.reason}
+                            </span>
+                          </div>
+                        )}
+                        <div className="event-card-actions">
+                          <button className="btn" onClick={() => { setSelected(ev); setTab('detail') }}>View</button>
+                          <button className="btn" onClick={() => handleReplay(ev.id)}>Replay</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <Pagination page={eventsPage} totalPages={events.totalPages} onPageChange={setEventsPage} />
                 </>
               ) : (
@@ -364,7 +400,7 @@ export default function App() {
             <div className="panel-body">
               {logs?.content?.length > 0 ? (
                 <>
-                  <table>
+                  <table className="desktop-table">
                     <thead>
                       <tr>
                         <th>Timestamp</th>
@@ -384,6 +420,26 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
+                  <div className="mobile-cards">
+                    {logs.content.map(log => (
+                      <div className="event-card" key={log.id}>
+                        <div className="event-card-header">
+                          <Badge value={log.level} type={log.level?.toLowerCase()} />
+                          <span className="mono" style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{log.eventId?.substring(0, 8)}</span>
+                        </div>
+                        <div className="event-card-row">
+                          <span className="card-label">Time</span>
+                          <span className="card-value mono">{formatTime(log.timestamp)}</span>
+                        </div>
+                        <div className="event-card-row" style={{ alignItems: 'flex-start' }}>
+                          <span className="card-label">Message</span>
+                          <span className="card-value" style={{ whiteSpace: 'normal', fontSize: '0.75rem', lineHeight: 1.4 }}>
+                            {log.message}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <Pagination page={logsPage} totalPages={logs.totalPages} onPageChange={setLogsPage} />
                 </>
               ) : (

@@ -532,19 +532,94 @@ tr:hover td { background: var(--surface-alt); }
   font-size: 0.78rem;
 }
 
+/* ── Mobile Card Layout ── */
+.mobile-cards {
+  display: none;
+}
+
+.event-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.event-card:last-child { border-bottom: none; }
+
+.event-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.event-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+}
+
+.event-card-row .card-label {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.event-card-row .card-value {
+  color: var(--text-secondary);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.event-card-actions .btn { flex: 1; justify-content: center; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .container { padding: 16px 12px; }
   .navbar { padding: 0 12px; }
   .panel-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
-  .filter-bar { flex-wrap: wrap; }
-  th, td { padding: 8px 10px; }
+  .filter-bar { flex-wrap: wrap; width: 100%; }
+  .filter-select { flex: 1; min-width: 0; }
   .detail-grid { grid-template-columns: 100px 1fr; }
-  .tabs-bar { width: 100%; }
-  .tab-btn { flex: 1; text-align: center; padding: 7px 8px; }
+  .tabs-bar { width: 100%; overflow-x: auto; }
+  .tab-btn { flex: 1; text-align: center; padding: 7px 6px; font-size: 0.75rem; white-space: nowrap; }
+  .pipeline-steps { flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .step-arrow { display: none; }
+  .step-box { font-size: 0.72rem; padding: 8px 12px; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
+  .desktop-table { display: none; }
+  .mobile-cards { display: block; }
+
+  .metrics-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .metric-card { padding: 10px 12px; }
+  .metric-card .value { font-size: 1.2rem; }
+  .metric-card .label { font-size: 0.65rem; }
+
+  .navbar-brand { font-size: 0.9rem; }
+  .navbar-brand .logo { width: 24px; height: 24px; font-size: 0.65rem; }
+  .navbar-status span:not(.status-dot) { font-size: 0.72rem; }
   .navbar-status .refresh-text { display: none; }
-  .hide-mobile { display: none; }
+
+  .panel-header h2 { font-size: 0.82rem; }
+  .detail-grid { grid-template-columns: 90px 1fr; }
+  .detail-grid dt, .detail-grid dd { padding: 6px 12px; font-size: 0.75rem; }
+  .code-block { margin: 8px 12px; padding: 10px 12px; font-size: 0.72rem; }
+
+  .webhook-textarea { font-size: 0.72rem; }
+
+  footer { font-size: 0.65rem !important; }
 }
