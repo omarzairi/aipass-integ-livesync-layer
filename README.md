@@ -2,15 +2,17 @@
 
 A production-ready event-driven integration layer that receives external events, processes them asynchronously through configurable workflows, and exposes structured results with full monitoring and observability.
 
+**GitHub Repository:** https://github.com/omarzairi/aipass-integ-livesync-layer
+
 ## Live Deployment
 
 | Service | URL |
 |---------|-----|
-| **Backend API** | `https://YOUR_RENDER_URL` |
-| **Swagger UI** | `https://YOUR_RENDER_URL/swagger-ui.html` |
-| **Health Check** | `https://YOUR_RENDER_URL/api/health` |
-| **Prometheus Metrics** | `https://YOUR_RENDER_URL/actuator/prometheus` |
-| **Dashboard** | `https://YOUR_FRONTEND_URL` |
+| **Backend API** | https://aipass-backend.onrender.com |
+| **Swagger UI** | https://aipass-backend.onrender.com/swagger-ui/index.html |
+| **Health Check** | https://aipass-backend.onrender.com/api/health |
+| **Prometheus Metrics** | https://aipass-backend.onrender.com/actuator/prometheus |
+| **Dashboard** | https://aipass-integ-livesync-layer.onrender.com |
 
 ---
 
@@ -112,7 +114,7 @@ PENDING → PROCESSING → PROCESSED (with workflow result)
 **Ingest an invoice event:**
 
 ```bash
-curl -X POST http://localhost:8080/api/events/webhook \
+curl -X POST https://aipass-backend.onrender.com/api/events/webhook \
   -H "Content-Type: application/json" \
   -d '{
     "event_type": "invoice.uploaded",
@@ -128,7 +130,7 @@ curl -X POST http://localhost:8080/api/events/webhook \
 **Ingest a supplier update:**
 
 ```bash
-curl -X POST http://localhost:8080/api/events/webhook \
+curl -X POST https://aipass-backend.onrender.com/api/events/webhook \
   -H "Content-Type: application/json" \
   -d '{
     "event_type": "supplier.updated",
@@ -144,7 +146,7 @@ curl -X POST http://localhost:8080/api/events/webhook \
 **Ingest an HR onboarding event:**
 
 ```bash
-curl -X POST http://localhost:8080/api/events/webhook \
+curl -X POST https://aipass-backend.onrender.com/api/events/webhook \
   -H "Content-Type: application/json" \
   -d '{
     "event_type": "hr.onboarding",
@@ -160,7 +162,7 @@ curl -X POST http://localhost:8080/api/events/webhook \
 **Ingest an anomaly alert:**
 
 ```bash
-curl -X POST http://localhost:8080/api/events/webhook \
+curl -X POST https://aipass-backend.onrender.com/api/events/webhook \
   -H "Content-Type: application/json" \
   -d '{
     "event_type": "anomaly.alert",
@@ -176,31 +178,31 @@ curl -X POST http://localhost:8080/api/events/webhook \
 **Check health:**
 
 ```bash
-curl http://localhost:8080/api/health
+curl https://aipass-backend.onrender.com/api/health
 ```
 
 **List events:**
 
 ```bash
-curl http://localhost:8080/api/events?page=0&size=10
+curl https://aipass-backend.onrender.com/api/events?page=0&size=10
 ```
 
 **Get specific event:**
 
 ```bash
-curl http://localhost:8080/api/events/{id}
+curl https://aipass-backend.onrender.com/api/events/{id}
 ```
 
 **Replay an event:**
 
 ```bash
-curl -X POST http://localhost:8080/api/events/{id}/replay
+curl -X POST https://aipass-backend.onrender.com/api/events/{id}/replay
 ```
 
 **View logs for an event:**
 
 ```bash
-curl http://localhost:8080/api/logs?eventId={id}
+curl https://aipass-backend.onrender.com/api/logs?eventId={id}
 ```
 
 ---

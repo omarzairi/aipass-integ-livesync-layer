@@ -1,8 +1,11 @@
 package aipasslivesync.backend.controller;
 
 import aipasslivesync.backend.dto.EventResponse;
+import aipasslivesync.backend.enums.EventStatus;
+import aipasslivesync.backend.enums.EventType;
 import aipasslivesync.backend.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,9 +28,12 @@ public class EventController {
     }
 
     @GetMapping
-    @Operation(summary = "List all events", description = "Paginated list of all events, ordered by creation date descending")
-    public Page<EventResponse> getAllEvents(@PageableDefault(size = 20) Pageable pageable) {
-        return eventService.getAllEvents(pageable);
+    @Operation(summary = "List events", description = "Paginated list of events with optional type/status filters")
+    public Page<EventResponse> getAllEvents(
+            @Parameter(description = "Filter by event type") @RequestParam(required = false) EventType eventType,
+            @Parameter(description = "Filter by status") @RequestParam(required = false) EventStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return eventService.getFilteredEvents(eventType, status, pageable);
     }
 
     @GetMapping("/{id}")

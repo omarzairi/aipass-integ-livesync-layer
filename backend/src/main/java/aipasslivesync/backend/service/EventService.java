@@ -68,6 +68,20 @@ public class EventService {
                 .map(this::toResponse);
     }
 
+    public Page<EventResponse> getFilteredEvents(EventType eventType, EventStatus status, Pageable pageable) {
+        Page<Event> page;
+        if (eventType != null && status != null) {
+            page = eventRepository.findByEventTypeAndStatusOrderByCreatedAtDesc(eventType, status, pageable);
+        } else if (eventType != null) {
+            page = eventRepository.findByEventTypeOrderByCreatedAtDesc(eventType, pageable);
+        } else if (status != null) {
+            page = eventRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else {
+            page = eventRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+        return page.map(this::toResponse);
+    }
+
     public EventResponse getEvent(UUID id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EventNotFoundException(id));

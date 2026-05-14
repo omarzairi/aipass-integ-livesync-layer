@@ -16,8 +16,11 @@ export function fetchHealth() {
   return request('/api/health');
 }
 
-export function fetchEvents(page = 0, size = 20) {
-  return request(`/api/events?page=${page}&size=${size}`);
+export function fetchEvents(page = 0, size = 10, eventType, status) {
+  const params = new URLSearchParams({ page, size });
+  if (eventType) params.set('eventType', eventType);
+  if (status) params.set('status', status);
+  return request(`/api/events?${params}`);
 }
 
 export function fetchEvent(id) {
@@ -25,8 +28,9 @@ export function fetchEvent(id) {
 }
 
 export function fetchLogs(eventId, page = 0, size = 50) {
-  const params = eventId ? `eventId=${eventId}&` : '';
-  return request(`/api/logs?${params}page=${page}&size=${size}`);
+  const params = new URLSearchParams({ page, size });
+  if (eventId) params.set('eventId', eventId);
+  return request(`/api/logs?${params}`);
 }
 
 export function replayEvent(id) {
