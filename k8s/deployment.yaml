@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aipass-backend
+  namespace: default
+  labels:
+    app: aipass-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aipass-backend
+  template:
+    metadata:
+      labels:
+        app: aipass-backend
+    spec:
+      containers:
+        - name: backend
+          image: aipass-livesync-engine:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: aipass-config
+            - secretRef:
+                name: aipass-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi

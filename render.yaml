@@ -1,0 +1,69 @@
+services:
+  - type: web
+    name: aipass-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aipass-db
+          property: connectionString
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: aipass-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: aipass-db
+          property: password
+      - key: DATABASE_DRIVER
+        value: org.postgresql.Driver
+      - key: REDIS_HOST
+        fromService:
+          name: aipass-redis
+          type: redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: aipass-redis
+          type: redis
+          property: port
+      - key: REDIS_PASSWORD
+        fromService:
+          name: aipass-redis
+          type: redis
+          property: password
+      - key: REDIS_USERNAME
+        fromService:
+          name: aipass-redis
+          type: redis
+          property: user
+      - key: REDIS_SSL
+        value: "true"
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: WEBHOOK_AUTH_ENABLED
+        value: "false"
+      - key: PORT
+        value: "8080"
+    healthCheckPath: /api/health
+
+  - type: web
+    name: aipass-dashboard
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://aipass-backend.onrender.com/api/*
+
+databases:
+  - name: aipass-db
+    plan: free
+
+services:
+  - type: redis
+    name: aipass-redis
+    plan: free

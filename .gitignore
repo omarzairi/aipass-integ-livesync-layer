@@ -1,0 +1,22 @@
+# Environment
+.env
+
+# Node
+node_modules/
+dist/
+
+# Java
+*.class
+build/
+.gradle/
+!backend/gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

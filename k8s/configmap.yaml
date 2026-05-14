@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aipass-config
+  namespace: default
+data:
+  DATABASE_DRIVER: org.postgresql.Driver
+  REDIS_HOST: redis-service
+  REDIS_PORT: "6379"
+  PORT: "8080"
+  WEBHOOK_AUTH_ENABLED: "false"
+  H2_CONSOLE_ENABLED: "false"

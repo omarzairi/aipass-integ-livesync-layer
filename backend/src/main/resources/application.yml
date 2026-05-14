@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: aipass-livesync-engine
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:aipass;DB_CLOSE_DELAY=-1}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      username: ${REDIS_USERNAME:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:false}
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+aipass:
+  webhook:
+    secret: ${WEBHOOK_SECRET:default-dev-secret}
+    auth-enabled: ${WEBHOOK_AUTH_ENABLED:false}
